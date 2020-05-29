@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <linux/if_ether.h>
+#include <linux/if.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,6 +15,8 @@
 #include "converter.h"
 
 using namespace std;
+
+#define NON_ACE_INTERFACE "eth1"
 
 int portNumberSetup = 17000;
 
@@ -122,6 +125,10 @@ int openConnection(int portNumber)
         printf("Error opening outbound socket\n");
         exit(-1);
     }
+
+    const int len = strnlen(NON_ACE_INTERFACE, IFNAMSIZ);
+    setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, NON_ACE_INTERFACE, len);
+
     if (connect(fd, res->ai_addr, sizeof(res)) == -1)
     {
         printf("Error connecting outbound socket\n");
