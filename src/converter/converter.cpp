@@ -16,12 +16,21 @@
 
 using namespace std;
 
-#define NON_ACE_INTERFACE "eth1"
+#define DEFAULT_NON_ACE_INTERFACE "eth1"
 
 int portNumberSetup = 17000;
+const char *interface;
 
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc < 2)
+    {
+        interface = DEFAULT_NON_ACE_INTERFACE;
+    }
+    else
+    {
+        interface = argv[1];
+    }
     unsigned char broadcast_mac[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     int sock_r = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -122,16 +131,16 @@ int openConnection(int portNumber)
     int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (fd == -1)
     {
-        printf("Error opening outbound socket\n");
+        perror("Error opening outbound socket\n");
         exit(-1);
     }
 
-    const int len = strnlen(NON_ACE_INTERFACE, IFNAMSIZ);
-    setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, NON_ACE_INTERFACE, len);
+    const int len = strnlen(interface, IFNAMSIZ);
+    setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, interface, len);
 
     if (connect(fd, res->ai_addr, sizeof(res)) == -1)
     {
-        printf("Error connecting outbound socket\n");
+        perror("Error connecting outbound socket\n");
         exit(-1);
     }
 
