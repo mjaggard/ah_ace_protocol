@@ -35,11 +35,8 @@ ip -br link show veth_ace
 ip -br link show veth_ace_peer
 echo ""
 echo "Test procedure:"
-echo "  Terminal 1: sudo ./ah_converter eth0      # (or whichever output interface you want)"
+echo "  Terminal 1: sudo ./ah_converter veth_ace eth0"
 echo "  Terminal 2: python3 ace_receiver.py --port 17000"
-echo "  Terminal 3: sudo python3 ace_sender.py veth_ace_peer --rate 100 --count 500"
-echo ""
-echo "Note: ah_converter receives on ALL interfaces (not bound), so frames"
-echo "injected on veth_ace_peer will appear on veth_ace and be picked up."
+echo "  Terminal 3: sudo python3 ace_sender.py veth_ace_peer --rate 48000 --duration 10"
 echo ""
 echo "To tear down:  sudo $0 teardown"
