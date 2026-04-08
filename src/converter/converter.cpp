@@ -98,7 +98,10 @@ int main(int argc, char *argv[])
         {
             start = 18;
         }
-        if (send(fd, buffer + start, buflen - start, 0) == -1)
+        // Send only the 195 bytes of audio channel data (65 channels x 3 bytes),
+        // discarding the 26 bytes of control/bridged data at the end
+        int audioDataLen = 65 * 3;
+        if (send(fd, buffer + start, audioDataLen, 0) == -1)
         {
             printf("Error sending datagram");
         }

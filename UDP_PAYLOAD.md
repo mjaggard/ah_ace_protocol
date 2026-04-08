@@ -15,9 +15,8 @@ Allen & Heath ACE audio data from one network interface to another.
 
 ## Payload Structure
 
-Each UDP packet is **221 bytes** and contains the ACE frame payload with the
-Ethernet header (and optional VLAN tag) stripped. The Ethernet headers are NOT
-included in the UDP payload.
+Each UDP packet is **195 bytes** containing audio channel data only. Control
+and bridged network data from the ACE frame is discarded.
 
 ```
 Offset  Size     Description
@@ -27,9 +26,8 @@ Offset  Size     Description
 6       3        Channel 2 - Audio channel (24 bits)
 ...     ...      ...
 192     3        Channel 64 - Audio channel (24 bits)
-195     26       Control/bridged network data
 ------  ----
-Total:  221 bytes
+Total:  195 bytes (65 channels x 3 bytes)
 ```
 
 ## Audio Channel Data (bytes 0-194)
@@ -86,15 +84,6 @@ Mixer input channels are NOT mapped 1:1 to ACE channels. They are spaced
 
 General formula: `ace_channel = ((mixer_channel - 1) % 8) * 8 + ((mixer_channel - 1) / 8) + 1`
 
-## Control Data (bytes 195-220)
-
-The final 26 bytes contain control and bridged network data:
-
-- **Byte 195:** Data stream type designator
-- **Bytes 196-220:** Data stream payload (bridged network data)
-
-The control data format is not fully reverse-engineered.
-
 ## Example: Reading a Single Audio Channel from UDP
 
 ```python
@@ -124,7 +113,7 @@ def ace_to_pcm24(b0, b1, b2):
 
 while True:
     data, addr = sock.recvfrom(256)
-    if len(data) != 221:
+    if len(data) != 195:
         continue
 
     # Read mixer channel 1 (ACE channel 1, offset 3 bytes)
@@ -134,18 +123,3 @@ while True:
     print(f"Channel 1 sample: {sample}")
 ```
 
-## Original Ethernet Frame Context
-
-For reference, the full ACE Ethernet frame (before UDP conversion) looks like:
-
-```
-Offset  Size     Description
-------  ----     -----------
-0       6        Destination MAC (always ff:ff:ff:ff:ff:ff)
-6       6        Source MAC
-12      2        EtherType
-[14     4        802.1Q VLAN tag (optional)]
-14/18   221      ACE payload (= the UDP payload documented above)
-------  ----
-Total:  235 bytes (no VLAN) or 239 bytes (with VLAN)
-```
