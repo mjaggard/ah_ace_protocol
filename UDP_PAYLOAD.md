@@ -30,27 +30,12 @@ Offset  Size     Description
 Total:  195 bytes (65 channels x 3 bytes)
 ```
 
-## Audio Channel Data (bytes 0-194)
+## Byte Order
 
-- **65 channels**, 3 bytes (24 bits) each = 195 bytes
-- **Sampling rate:** 48 kHz
-- **Bit depth:** 24-bit
-
-### Channel 0: Sync Signal
-
-Channel 0 is a synchronization signal, not audio. Only the least significant
-byte carries data (the upper two bytes are always `0x00 0x00`). The sync byte
-cycles through this repeating 16-value pattern:
-
-```
-0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C,
-0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C
-```
-
-### Channels 1-64: Audio
-
-Audio samples are 24-bit, transmitted in ACE byte order. To convert to standard
-PCM (little-endian) for WAV files or audio processing, apply this transformation:
+All channel data in the UDP payload is in **ACE wire byte order**, not standard
+PCM byte order. To convert any channel's 3 bytes to a standard 24-bit PCM
+sample, apply this transformation (swap bytes 0 and 2, then swap nibbles within
+each byte):
 
 ```c
 uint32_t ace_to_pcm24(uint32_t src)
@@ -62,6 +47,26 @@ uint32_t ace_to_pcm24(uint32_t src)
     return src;
 }
 ```
+
+This conversion applies to all 65 channels, including the sync signal.
+
+## Channel 0: Sync Signal
+
+Channel 0 (bytes 0-2 of the payload) is a synchronization signal, not audio.
+After applying the byte-order conversion above, only the least significant byte
+of the resulting 24-bit value carries data (the upper two bytes are always
+`0x00 0x00`). The converted sync byte cycles through this repeating 16-value
+pattern:
+
+```
+0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C,
+0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C
+```
+
+**Note:** In the raw UDP payload bytes (before conversion), the sync data is in
+byte 2 of the channel (packet offset 2), not byte 0. Bytes 0 and 1 are `0x00`.
+
+## Channels 1-64: Audio
 
 ### Mixer Channel Mapping
 
