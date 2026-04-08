@@ -1,4 +1,5 @@
 #include <linux/if_ether.h>
+#include <array>
 #include <map>
 
 #define ACE_MAX_PACKET_LEN 239
@@ -6,5 +7,5 @@
 
 
 int main(int argc, char *argv[]);
-int getConnection(std::array<unsigned char, ETH_ALEN> macAddress, std::map<std::array<unsigned char,ETH_ALEN>, int> mapOfPorts);
+int getConnection(std::array<unsigned char, ETH_ALEN> macAddress, std::map<std::array<unsigned char,ETH_ALEN>, int>& mapOfPorts);
 int openConnection(int portNumber);

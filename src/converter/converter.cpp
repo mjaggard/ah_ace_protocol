@@ -80,10 +80,18 @@ int main(int argc, char *argv[])
                 int portNumber = portNumberSetup;
                 portNumberSetup++;
                 it->second = openConnection(portNumber);
+                it++;
             }
+            discardCounter = -1;
         }
 
         int fd = getConnection(macAddress, mapOfPorts);
+
+        // Only forward ACE-sized frames (235 without VLAN, 239 with VLAN)
+        if (buflen != 235 && buflen != 239)
+        {
+            continue;
+        }
 
         int start = 14;
         if (buflen == 239)
@@ -97,7 +105,7 @@ int main(int argc, char *argv[])
     }
 }
 
-int getConnection(std::array<unsigned char, ETH_ALEN> macAddress, std::map<std::array<unsigned char,ETH_ALEN>, int> mapOfPorts)
+int getConnection(std::array<unsigned char, ETH_ALEN> macAddress, std::map<std::array<unsigned char,ETH_ALEN>, int>& mapOfPorts)
 {
     std::map<std::array<unsigned char,ETH_ALEN>, int>::iterator it = mapOfPorts.find(macAddress);
     if (it == mapOfPorts.end())
@@ -116,7 +124,7 @@ int getConnection(std::array<unsigned char, ETH_ALEN> macAddress, std::map<std::
 
 int openConnection(int portNumber)
 {
-    char *port;
+    char port[16];
     sprintf(port, "%d", portNumber);
 
     struct addrinfo* res = 0;
@@ -127,22 +135,31 @@ int openConnection(int portNumber)
     hints.ai_protocol = 0;
     hints.ai_flags = AI_ADDRCONFIG;
     int err = getaddrinfo(MULTICAST_LOCATION, port, &hints, &res);
-    
+    if (err != 0)
+    {
+        fprintf(stderr, "Error resolving multicast address: %s\n", gai_strerror(err));
+        exit(-1);
+    }
+
     int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (fd == -1)
     {
         perror("Error opening outbound socket\n");
+        freeaddrinfo(res);
         exit(-1);
     }
 
     const int len = strnlen(interface, IFNAMSIZ);
     setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, interface, len);
 
-    if (connect(fd, res->ai_addr, sizeof(res)) == -1)
+    if (connect(fd, res->ai_addr, res->ai_addrlen) == -1)
     {
         perror("Error connecting outbound socket\n");
+        close(fd);
+        freeaddrinfo(res);
         exit(-1);
     }
 
+    freeaddrinfo(res);
     return fd;
 }
